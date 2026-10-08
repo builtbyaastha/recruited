@@ -19,3 +19,5 @@ jobs:
           key: db-${{ github.run_id }}
           restore-keys: db-
       - run: python -m recruited run
+        env:
+          RECRUITED_CONTACT: ${{ secrets.RECRUITED_CONTACT }}

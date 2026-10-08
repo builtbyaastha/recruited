@@ -103,3 +103,48 @@ def test_api_roundtrip(tmp_path, monkeypatch):
     assert r.status_code == 200 and r.json()["matches"][0]["company"] == "Foo"
     assert cl.post("/api/match", data={"text": "short"}).status_code == 400
     assert cl.get("/").status_code == 200
+
+
+def test_edgar_parse_filters_funds():
+    from recruited.sources import edgar
+    feed = """<feed xmlns="http://www.w3.org/2005/Atom">
+    <entry><title>D - Acme Robotics, Inc. (0001234567) (Filer)</title><link href="https://sec/1"/><updated>2026-10-01T10:00:00-04:00</updated></entry>
+    <entry><title>D - Blue Oak Real Estate Fund LP (0001234568) (Filer)</title><link href="https://sec/2"/></entry>
+    </feed>"""
+    items = edgar.parse(feed)
+    assert [i.company for i in items] == ["Acme Robotics"] and items[0].round == "Form D"
+
+
+def test_robots_enforced(monkeypatch):
+    from recruited import http
+    http._robots.clear()
+    class R:  # fake response
+        def __init__(s, code, text=""): s.status_code, s.text = code, text
+    class C:
+        def get(s, url, **kw):
+            if url.endswith("/robots.txt"):
+                return R(200, "User-agent: *\nDisallow: /private") if "blocked.test" in url else R(404)
+            return R(200, "ok")
+    monkeypatch.setattr(http, "client", lambda: C())
+    monkeypatch.setattr(http.config, "MIN_DELAY", 0)
+    assert http.get_text("https://blocked.test/private/x") is None
+    assert http.get_text("https://blocked.test/public") == "ok"
+    assert http.get_text("https://norobots.test/anything") == "ok"  # robots 404 -> allowed
+
+
+def test_robots_unreachable_means_no(monkeypatch):
+    import httpx
+    from recruited import http
+    http._robots.clear()
+    class C:
+        def get(s, url, **kw): raise httpx.ConnectError("down")
+    monkeypatch.setattr(http, "client", lambda: C())
+    assert http.get_text("https://down.test/x") is None
+
+
+def test_digest_builds():
+    from recruited import digest
+    conn = _seed()
+    conn.execute("UPDATE jobs SET posted_at=?", (db.now(),))
+    subj, body = digest.build(conn, "Senior backend engineer, 7 years. Python Postgres Docker AWS " * 3)
+    assert "Acme" in body and subj.startswith("Recruited")

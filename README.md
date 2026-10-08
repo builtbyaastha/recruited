@@ -15,7 +15,7 @@ pytest
 ```
 
 ## Pipeline
-`sources/` (HN "Who is hiring", RSS funding/launch news, Product Hunt, YC hiring list)
+`sources/` (HN "Who is hiring", SEC EDGAR Form D, RSS funding/launch news, Product Hunt; YC opt-in)
 -> `extract.py` (headline -> company, amount, round) -> SQLite
 -> `enrich.py` (guess Greenhouse/Lever/Ashby board, pull jobs from public JSON APIs)
 -> `matching/` (resume parse, TF-IDF cosine + skills + title + funding momentum + seniority).
@@ -27,7 +27,15 @@ Add a source: create `sources/foo.py` with `fetch() -> list[Item]` and register 
 - `RECRUITED_DB`, `RECRUITED_ENRICH_LIMIT`: DB path, companies probed per run.
 - `.github/workflows/daily.yml` runs the pipeline daily on GitHub Actions (free).
 
+## Digest
+`python -m recruited digest resume.pdf` prints new matches from the last 24h; add `--to you@x.com` and set
+`SMTP_HOST`, `SMTP_USER`, `SMTP_PASSWORD` (any free SMTP, e.g. Gmail app password or Brevo) to email it.
+
+## Compliance
+Set `RECRUITED_CONTACT=you@example.com` (required for SEC EDGAR). All requests honour robots.txt and are rate
+limited. See [COMPLIANCE.md](COMPLIANCE.md) for per-source terms.
+
 ## Notes
 - Crunchbase, Wellfound and LinkedIn are intentionally not scraped (ToS). Funding news, YC and ATS boards cover the same signal.
 - Respect each site's robots.txt/ToS. Resumes are processed in memory and never stored.
-- Ideas next: SEC EDGAR Form D source, daily email digest, user accounts, Postgres+pgvector.
+- Ideas next: user accounts, Postgres+pgvector.
