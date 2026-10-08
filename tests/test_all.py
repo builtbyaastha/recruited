@@ -148,3 +148,56 @@ def test_digest_builds():
     conn.execute("UPDATE jobs SET posted_at=?", (db.now(),))
     subj, body = digest.build(conn, "Senior backend engineer, 7 years. Python Postgres Docker AWS " * 3)
     assert "Acme" in body and subj.startswith("Recruited")
+
+
+RESUME = """Jane Doe
+- Reduced onboarding time 40% by automating Postgres data pipelines in Python
+- Organised the office holiday party for 30 people
+- Led a team of 4 to launch pricing experiments across 3 markets
+"""
+
+
+def test_outreach_picks_one_bullet_and_stays_short():
+    from recruited import outreach
+    conn = _seed()
+    job = dict(conn.execute("SELECT j.*, c.name AS company FROM jobs j JOIN companies c ON c.id=j.company_id "
+                            "WHERE j.id=1").fetchone())
+    sigs = [dict(r) for r in conn.execute("SELECT * FROM signals")]
+    d = outreach.draft(job, sigs, RESUME, "Sam Lee", "Jane Doe", "jane@x.com")
+    assert "Postgres" in d["bullet"] and d["email"].count("Postgres") <= 1
+    assert d["email"].startswith("Subject: Senior Backend Engineer redirect to the right recruiter?")
+    body = d["email"].split("\n\n", 1)[1].rsplit("\n\n", 1)[0]
+    assert outreach.words(body) < 120 and len(d["linkedin"]) <= 300
+    assert d["flags"] and "Hi Sam," in d["email"]
+    assert "redirect me to the relevant recruiter" in d["email"]
+
+
+def test_outreach_prompt_filled_and_no_bullets_error():
+    from recruited import outreach
+    conn = _seed()
+    job = dict(conn.execute("SELECT j.*, c.name AS company FROM jobs j JOIN companies c ON c.id=j.company_id "
+                            "WHERE j.id=1").fetchone())
+    p = outreach.build_prompt(job, [], RESUME, "Sam Lee")
+    assert "cold email to Sam Lee at Acme" in p and "[FOUNDER NAME]" not in p and "Here's my resume: Jane" in p
+    assert "error" in outreach.draft(job, [], "no bullets here at all just prose", "S", "J", "")
+
+
+def test_outreach_api_single_job_only(tmp_path, monkeypatch):
+    from fastapi.testclient import TestClient
+    from recruited import api, config
+    monkeypatch.setattr(config, "DB_PATH", tmp_path / "o.db")
+    with db.session() as c:
+        pipeline.store_item(c, hn.parse_comment({"id": 3, "created_at": None,
+                            "text": "Foo | Backend Engineer | Remote | Python Postgres"}))
+    cl = TestClient(api.app)
+    form = {"job_id": 1, "resume_text": RESUME, "founder": "Sam", "sender": "Jane", "contact": "j@x.com"}
+    r = cl.post("/api/outreach", data=form)
+    assert r.status_code == 200 and "Subject:" in r.json()["email"] and "prompt" in r.json()
+    assert cl.post("/api/outreach", data={**form, "job_id": 99}).status_code == 404
+    assert cl.post("/api/outreach", data={"job_ids": "1,2", "resume_text": RESUME, "sender": "J"}).status_code == 422
+
+
+def test_ollama_optional(monkeypatch):
+    from recruited import outreach
+    monkeypatch.delenv("RECRUITED_OLLAMA_MODEL", raising=False)
+    assert outreach.ollama_refine("x") is None

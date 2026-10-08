@@ -12,7 +12,9 @@ textarea{width:100%;min-height:90px;box-sizing:border-box;font:inherit;border-ra
 input[type=text]{font:inherit;padding:6px 8px;border-radius:8px;border:1px solid #8884;background:var(--bg);color:var(--fg)}
 button{background:var(--acc);color:#fff;border:0;border-radius:8px;padding:10px 18px;font:inherit;cursor:pointer}
 .row{display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-top:10px}
-.score{float:right;font-weight:700;color:var(--acc)}.mut{color:var(--mut);font-size:14px}
+.ghost{background:transparent;color:var(--acc);border:1px solid var(--acc);padding:6px 12px;margin-top:8px}
+pre{white-space:pre-wrap;background:var(--bg);padding:10px;border-radius:8px;font:14px/1.5 ui-monospace,monospace}
+.flag{color:#b45309;font-size:14px}.score{float:right;font-weight:700;color:var(--acc)}.mut{color:var(--mut);font-size:14px}
 a{color:var(--acc)}
 </style></head><body><main>
 <h1>Recruited</h1><p class="sub">Upload your resume. Get matched to startups that just raised, launched or started hiring.</p>
@@ -28,6 +30,7 @@ a{color:var(--acc)}
 </form>
 <div id="out"></div>
 <script>
+let RESUME="";
 const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 document.getElementById("f").onsubmit=async e=>{
   e.preventDefault();const out=document.getElementById("out");out.textContent="Matching...";
@@ -35,11 +38,32 @@ document.getElementById("f").onsubmit=async e=>{
   if(!fd.get("remote_only"))fd.delete("remote_only");
   const r=await fetch("/api/match",{method:"POST",body:fd});
   if(!r.ok){out.textContent=(await r.json()).detail||"Error";return}
-  const d=await r.json();
+  const d=await r.json();RESUME=d.resume_text;
   out.innerHTML=`<p class="mut">Detected: ${esc(d.profile.seniority)}, ${d.profile.years} yrs, skills: ${esc(d.profile.skills.join(", ")||"none")}</p>`+
    (d.matches.map(m=>`<div class="card"><span class="score">${(m.score*100).toFixed(0)}</span>
     <b><a href="${esc(m.url)}" target="_blank" rel="noopener noreferrer">${esc(m.title)}</a></b> · ${esc(m.company)}
     <div class="mut">${esc(m.location)}${m.remote?" · remote":""}${m.stage?" · "+esc(m.stage):""}</div>
-    <div>${esc(m.reason)}</div></div>`).join("")||"<p>No jobs yet. Run the pipeline first.</p>");
+    <div>${esc(m.reason)}</div><button type="button" class="ghost" data-job="${m.id}">Reach out</button></div>`).join("")||"<p>No jobs yet. Run the pipeline first.</p>");
 };
+
+// Outreach: one company at a time, only when the user clicks.
+document.getElementById("out").addEventListener("click",e=>{
+  const b=e.target.closest("[data-job]");if(!b)return;
+  const card=b.closest(".card");let box=card.querySelector(".oform");
+  if(box){box.remove();return}
+  box=document.createElement("form");box.className="oform";
+  box.innerHTML=`<div class="row"><input type="text" name="founder" placeholder="Founder / hiring contact name">
+   <input type="text" name="sender" placeholder="Your name" required><input type="text" name="contact" placeholder="Your email / phone / LinkedIn"></div>
+   <div class="row"><button>Draft message</button></div><div class="res"></div>`;
+  card.appendChild(box);
+  box.onsubmit=async ev=>{ev.preventDefault();const res=box.querySelector(".res");res.textContent="Drafting...";
+   const fd=new FormData(box);fd.append("job_id",b.dataset.job);fd.append("resume_text",RESUME);
+   const r=await fetch("/api/outreach",{method:"POST",body:fd});const d=await r.json();
+   if(!r.ok){res.textContent=d.detail||"Error";return}
+   if(d.error){res.textContent=d.error;return}
+   const cp=(t,l)=>`<p><b>${l}</b> <button type="button" class="ghost" data-copy="${esc(t)}">Copy</button></p><pre>${esc(t)}</pre>`;
+   res.innerHTML=d.flags.map(f=>`<p class="flag">⚠ ${esc(f)}</p>`).join("")+cp(d.email,"Email")+cp(d.linkedin,"LinkedIn note ("+d.linkedin.length+"/300)")+
+    `<details><summary>Prompt for ChatGPT/Claude/Gemini (they can search the web)</summary>${cp(d.prompt,"Prompt")}</details>`;};
+});
+document.addEventListener("click",e=>{const c=e.target.closest("[data-copy]");if(c){navigator.clipboard.writeText(c.dataset.copy);c.textContent="Copied"}});
 </script></main></body></html>

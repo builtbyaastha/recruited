@@ -31,6 +31,13 @@ Add a source: create `sources/foo.py` with `fetch() -> list[Item]` and register 
 `python -m recruited digest resume.pdf` prints new matches from the last 24h; add `--to you@x.com` and set
 `SMTP_HOST`, `SMTP_USER`, `SMTP_PASSWORD` (any free SMTP, e.g. Gmail app password or Brevo) to email it.
 
+## Cold outreach (one company at a time)
+In the web UI each match has a **Reach out** button. Enter the contact's name (you supply it; the app never
+looks up emails) and your details to get an email, a LinkedIn note (<=300 chars), and your cold-email prompt
+pre-filled with the job posting and recent news we hold, ready to paste into any LLM with web search.
+Drafts are rule-based (one resume bullet, under 120 words); set `RECRUITED_OLLAMA_MODEL` to also have a
+local Ollama model run the prompt. There is no bulk endpoint by design. Always verify the flagged news first.
+
 ## Compliance
 Set `RECRUITED_CONTACT=you@example.com` (required for SEC EDGAR). All requests honour robots.txt and are rate
 limited. See [COMPLIANCE.md](COMPLIANCE.md) for per-source terms.
