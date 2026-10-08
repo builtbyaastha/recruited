@@ -1,0 +1,84 @@
+python
+java
+javascript
+typescript
+go
+golang
+rust
+c++
+c#
+ruby
+rails
+php
+swift
+kotlin
+scala
+sql
+postgres
+postgresql
+mysql
+mongodb
+redis
+kafka
+spark
+airflow
+dbt
+snowflake
+react
+next.js
+vue
+angular
+node
+node.js
+django
+flask
+fastapi
+spring
+graphql
+rest
+grpc
+docker
+kubernetes
+terraform
+aws
+gcp
+azure
+linux
+ci/cd
+git
+machine learning
+deep learning
+nlp
+llm
+llms
+pytorch
+tensorflow
+scikit-learn
+pandas
+numpy
+computer vision
+data science
+data engineering
+analytics
+tableau
+figma
+ui/ux
+product management
+growth
+seo
+sales
+marketing
+customer success
+devops
+sre
+security
+blockchain
+solidity
+ios
+android
+react native
+flutter
+embedded
+ml
+ai
+rag

@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Recruited</title>
+<style>
+:root{--bg:#fff;--fg:#1a1a1a;--mut:#666;--card:#f5f5f7;--acc:#4f46e5}
+@media(prefers-color-scheme:dark){:root{--bg:#111;--fg:#eee;--mut:#999;--card:#1c1c20;--acc:#818cf8}}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.5 system-ui,sans-serif}
+main{max-width:760px;margin:0 auto;padding:24px 16px}
+h1{margin:0 0 4px}p.sub{color:var(--mut);margin:0 0 20px}
+form,.card{background:var(--card);border-radius:12px;padding:16px;margin-bottom:12px}
+textarea{width:100%;min-height:90px;box-sizing:border-box;font:inherit;border-radius:8px;border:1px solid #8884;padding:8px;background:var(--bg);color:var(--fg)}
+input[type=text]{font:inherit;padding:6px 8px;border-radius:8px;border:1px solid #8884;background:var(--bg);color:var(--fg)}
+button{background:var(--acc);color:#fff;border:0;border-radius:8px;padding:10px 18px;font:inherit;cursor:pointer}
+.row{display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-top:10px}
+.score{float:right;font-weight:700;color:var(--acc)}.mut{color:var(--mut);font-size:14px}
+a{color:var(--acc)}
+</style></head><body><main>
+<h1>Recruited</h1><p class="sub">Upload your resume. Get matched to startups that just raised, launched or started hiring.</p>
+<form id="f">
+  <input type="file" name="resume" accept=".pdf,.txt,.md"> <span class="mut">or paste text:</span>
+  <textarea name="text" placeholder="Paste your resume text..."></textarea>
+  <div class="row">
+    <input type="text" name="location" placeholder="Location (optional)">
+    <label><input type="checkbox" name="remote_only" value="true"> Remote only</label>
+    <button>Find matches</button>
+  </div>
+  <p class="mut">Your resume is processed in memory and never stored.</p>
+</form>
+<div id="out"></div>
+<script>
+const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+document.getElementById("f").onsubmit=async e=>{
+  e.preventDefault();const out=document.getElementById("out");out.textContent="Matching...";
+  const fd=new FormData(e.target);if(!fd.get("resume").size)fd.delete("resume");
+  if(!fd.get("remote_only"))fd.delete("remote_only");
+  const r=await fetch("/api/match",{method:"POST",body:fd});
+  if(!r.ok){out.textContent=(await r.json()).detail||"Error";return}
+  const d=await r.json();
+  out.innerHTML=`<p class="mut">Detected: ${esc(d.profile.seniority)}, ${d.profile.years} yrs, skills: ${esc(d.profile.skills.join(", ")||"none")}</p>`+
+   (d.matches.map(m=>`<div class="card"><span class="score">${(m.score*100).toFixed(0)}</span>
+    <b><a href="${esc(m.url)}" target="_blank" rel="noopener noreferrer">${esc(m.title)}</a></b> · ${esc(m.company)}
+    <div class="mut">${esc(m.location)}${m.remote?" · remote":""}${m.stage?" · "+esc(m.stage):""}</div>
+    <div>${esc(m.reason)}</div></div>`).join("")||"<p>No jobs yet. Run the pipeline first.</p>");
+};
+</script></main></body></html>
