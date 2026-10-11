@@ -8,6 +8,7 @@ score = 0.55 * semantic + 0.20 * skill overlap + 0.10 * title match
 embedding model is used instead.
 """
 import os
+import re
 from datetime import datetime, timezone
 
 import numpy as np
@@ -62,8 +63,25 @@ def seniority_fit(want: str, have: str | None) -> float:
     return max(0.0, 1 - abs(LEVELS.index(want) - LEVELS.index(have)) / 3)
 
 
-def _overlap(a: set, b: set) -> float:
-    return len(a & b) / len(b) if b else 0.0
+def skill_overlap(mine: set, theirs: set) -> float:
+    """Share of the job's skills I have, but a job naming only one or two skills can't score a full
+    match off a single keyword (floor of 5 in the denominator)."""
+    return len(mine & theirs) / max(len(theirs), 5) if theirs else 0.0
+
+
+_GENERIC_TITLE = {"engineer", "developer", "senior", "sr", "sr.", "junior", "jr", "lead", "staff",
+                  "principal", "manager", "i", "ii", "iii", "-", "and", "of"}
+
+
+def title_match(resume_titles: list[str], job_title: str) -> float:
+    """Fraction of the distinctive words in my best title (e.g. "backend", "data") found in the job title."""
+    job = set(re.findall(r"[a-z+#.]+", job_title.lower()))
+    best = 0.0
+    for t in resume_titles:
+        words = set(t.split()) - _GENERIC_TITLE
+        if words:
+            best = max(best, len(words & job) / len(words))
+    return best
 
 
 def rank(resume: Resume, jobs: list[dict], signals_by_company: dict[int, list[dict]],
@@ -81,10 +99,10 @@ def rank(resume: Resume, jobs: list[dict], signals_by_company: dict[int, list[di
     for j, s in zip(jobs, sem):
         jskills = set(extract_skills(f"{j['title']} {j['description'] or ''}"))
         matched = sorted(rskills & jskills)
-        title_hit = max((_overlap(set(t.split()), set(j["title"].lower().split())) for t in resume.titles), default=0.0)
+        title_hit = title_match(resume.titles, j["title"])
         mom = momentum(signals_by_company.get(j["company_id"], []))
         sen = seniority_fit(resume.seniority, j["seniority"])
-        score = (W["semantic"] * float(s) + W["skills"] * _overlap(rskills, jskills)
+        score = (W["semantic"] * float(s) + W["skills"] * skill_overlap(rskills, jskills)
                  + W["title"] * title_hit + W["momentum"] * mom + W["seniority"] * sen)
         results.append(dict(j, score=round(score, 4), matched_skills=matched, momentum=round(mom, 2),
                             reason=_reason(matched, mom, signals_by_company.get(j["company_id"], []), sen)))

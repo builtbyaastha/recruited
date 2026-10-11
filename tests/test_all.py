@@ -230,3 +230,17 @@ def test_rank_dedupes_same_role():
     out = service.match_resume(conn, "Senior backend engineer, 7 years. Python, Postgres, Docker " * 3)
     titles = [(m["company"], m["title"]) for m in out["matches"]]
     assert len(titles) == len(set(titles))
+
+
+def test_single_shared_skill_does_not_win():
+    from recruited import service
+    conn = db.connect(Path(":memory:"))
+    a = db.upsert_company(conn, "NuclearCo")
+    b = db.upsert_company(conn, "InfraCo")
+    db.add_job(conn, a, "Process Engineer - Fuel Recycling", "https://j/n",
+               "Process engineering for fuel recycling plants. Python scripting a plus.", "Idaho", False, "mid")
+    db.add_job(conn, b, "Software Engineer - Infrastructure", "https://j/i",
+               "Run Kubernetes, Terraform, AWS and Go services with Postgres and Redis.", "Remote", True, "mid")
+    resume = open("examples/sample_resume.txt").read()
+    top = service.match_resume(conn, resume)["matches"][0]
+    assert top["company"] == "InfraCo"
