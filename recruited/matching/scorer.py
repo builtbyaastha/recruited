@@ -16,6 +16,7 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
 from .. import config
+from ..extract import seniority_of
 from .resume import Resume, extract_skills
 
 LEVELS = ["intern", "junior", "mid", "senior", "lead", "executive"]
@@ -101,7 +102,7 @@ def rank(resume: Resume, jobs: list[dict], signals_by_company: dict[int, list[di
         matched = sorted(rskills & jskills)
         title_hit = title_match(resume.titles, j["title"])
         mom = momentum(signals_by_company.get(j["company_id"], []))
-        sen = seniority_fit(resume.seniority, j["seniority"])
+        sen = seniority_fit(resume.seniority, seniority_of(j["title"]))  # from title, so rule fixes apply to old rows
         score = (W["semantic"] * float(s) + W["skills"] * skill_overlap(rskills, jskills)
                  + W["title"] * title_hit + W["momentum"] * mom + W["seniority"] * sen)
         results.append(dict(j, score=round(score, 4), matched_skills=matched, momentum=round(mom, 2),
