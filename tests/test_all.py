@@ -120,16 +120,21 @@ def test_robots_enforced(monkeypatch):
     http._robots.clear()
     class R:  # fake response
         def __init__(s, code, text=""): s.status_code, s.text = code, text
+    robots = {"blocked.test": R(200, "User-agent: *\nDisallow: /private"), "norobots.test": R(404),
+              "forbidden.test": R(403), "api.ashbyhq.com": R(401), "ratelimited.test": R(429)}
     class C:
         def get(s, url, **kw):
             if url.endswith("/robots.txt"):
-                return R(200, "User-agent: *\nDisallow: /private") if "blocked.test" in url else R(404)
+                return robots[url.split("/")[2]]
             return R(200, "ok")
     monkeypatch.setattr(http, "client", lambda: C())
     monkeypatch.setattr(http.config, "MIN_DELAY", 0)
     assert http.get_text("https://blocked.test/private/x") is None
     assert http.get_text("https://blocked.test/public") == "ok"
-    assert http.get_text("https://norobots.test/anything") == "ok"  # robots 404 -> allowed
+    assert http.get_text("https://norobots.test/anything") == "ok"    # no robots.txt -> allowed
+    assert http.get_text("https://forbidden.test/feed") is None       # 403 robots -> stay out
+    assert http.get_text("https://ratelimited.test/feed") is None     # 429 robots -> stay out
+    assert http.get_text("https://api.ashbyhq.com/posting-api/job-board/x") == "ok"  # documented API
 
 
 def test_robots_unreachable_means_no(monkeypatch):

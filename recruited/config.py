@@ -21,7 +21,18 @@ RSS_FEEDS = {
     "venturebeat": "https://venturebeat.com/category/business/feed/",
     "eu-startups": "https://www.eu-startups.com/feed/",
     "producthunt": "https://www.producthunt.com/feed",
-    "siliconangle": "https://siliconangle.com/category/startups/feed/",
+    "siliconangle": "https://siliconangle.com/feed/",
+}
+# Sites whose robots.txt answers 401/403 are skipped automatically (see http.py). As of Oct 2026 that
+# includes Product Hunt and EU-Startups; they stay listed so they resume if the site opens up.
+
+# Documented, unauthenticated public APIs that exist for exactly this use. Their hosts may answer
+# robots.txt with 401/403 because the whole host is an API; a robots.txt they do serve is still obeyed.
+PUBLIC_API_HOSTS = {
+    "boards-api.greenhouse.io",   # Greenhouse Job Board API
+    "api.lever.co",               # Lever Postings API
+    "api.ashbyhq.com",            # Ashby public job posting API
+    "hn.algolia.com",             # Official HN Search API
 }
 # Opt-in only: this is a third-party mirror of YC's directory, so we don't enable it by default.
 ENABLE_YC = os.environ.get("RECRUITED_ENABLE_YC") == "1"

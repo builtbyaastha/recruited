@@ -1,0 +1,12 @@
+Alex Rivera
+Backend Software Engineer
+alex@example.com
+
+Experience
+Software Engineer, Fintech startup (5 years)
+- Built Python and Go microservices on AWS handling 2M requests/day
+- Reduced Postgres query latency 60% by redesigning indexes and caching with Redis
+- Led migration of 40 services to Kubernetes and Terraform
+- Shipped GraphQL API used by the React frontend and mobile apps
+
+Skills: Python, Go, Postgres, Redis, AWS, Docker, Kubernetes, Terraform, GraphQL, React

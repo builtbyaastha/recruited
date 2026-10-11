@@ -11,8 +11,8 @@ We store only headlines, links and short snippets (never full copyrighted articl
 | Greenhouse / Lever / Ashby | Documented public job-board APIs meant for embedding jobs | OK |
 | Hacker News | Official Algolia HN Search API; content is public | OK, link back to the item |
 | SEC EDGAR Form D | US government data; needs `RECRUITED_CONTACT`, <=10 req/s | OK |
-| TechCrunch, VentureBeat, EU-Startups, SiliconANGLE | Their public RSS feeds, headline + link only | OK for personal/non-commercial use; check each site's terms before commercial use |
-| Product Hunt | Public RSS feed | Personal/non-commercial use only; commercial use needs their permission |
+| TechCrunch, VentureBeat, SiliconANGLE | Their public RSS feeds, headline + link only | OK for personal/non-commercial use; check each site's terms before commercial use |
+| Product Hunt, EU-Startups | Public RSS feed | **Skipped automatically**: their robots.txt answers 403 to bots (checked Oct 2026). Resumes on its own if that changes |
 | Y Combinator list | Third-party mirror of YC's directory | **Off by default** (`RECRUITED_ENABLE_YC=1`); verify YC's terms first |
 | Crunchbase, Wellfound, LinkedIn | Terms prohibit scraping | **Not used** |
 

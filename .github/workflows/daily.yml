@@ -25,6 +25,8 @@ jobs:
         env:
           RECRUITED_CONTACT: ${{ secrets.RECRUITED_CONTACT }}
       - run: python -m recruited stats
+      - name: Sample match (smoke test on live data)
+        run: python -m recruited match examples/sample_resume.txt --limit 10
       - name: Upload database
         uses: actions/upload-artifact@v4
         with:

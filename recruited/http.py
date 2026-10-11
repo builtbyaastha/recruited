@@ -27,17 +27,25 @@ def client() -> httpx.Client:
 
 
 def _robots_for(origin: str):
-    """Parse robots.txt once per host. 4xx = no restrictions; 5xx/unreachable = assume disallowed."""
+    """Parse robots.txt once per host, reading any doubt as "keep out".
+
+    200 -> obey its rules. 404/410 (no robots.txt) -> no restrictions. 401/403 -> the site is refusing
+    bots, so stay out, unless the host is a documented public API (config.PUBLIC_API_HOSTS) whose API
+    root simply rejects unauthenticated paths. 429/5xx/unreachable -> stay out this run.
+    """
     if origin in _robots:
         return _robots[origin]
     rp = urllib.robotparser.RobotFileParser()
+    host = urlparse(origin).netloc
     try:
         r = client().get(f"{origin}/robots.txt")
-        if r.status_code == 200:
+        code = r.status_code
+        if code == 200:
             rp.parse(r.text.splitlines())
-        elif 400 <= r.status_code < 500:
+        elif code in (404, 410) or (code in (401, 403) and host in config.PUBLIC_API_HOSTS):
             rp.parse([])
         else:
+            log.info("robots.txt at %s returned %s; not fetching from this host", host, code)
             rp = None
     except httpx.HTTPError:
         rp = None
