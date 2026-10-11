@@ -2,6 +2,7 @@
 
 Every fetch in the project goes through here, so compliance is enforced in one place.
 """
+import logging
 import time
 import urllib.robotparser
 from urllib.parse import urlparse
@@ -9,6 +10,8 @@ from urllib.parse import urlparse
 import httpx
 
 from . import config
+
+log = logging.getLogger("recruited.http")
 
 _client: httpx.Client | None = None
 _robots: dict[str, urllib.robotparser.RobotFileParser | None] = {}
@@ -59,13 +62,18 @@ def _throttle(host: str):
 
 def _get(url: str, **kw) -> httpx.Response | None:
     if not allowed(url):
+        log.info("skipped (robots.txt): %s", url)
         return None
     _throttle(urlparse(url).netloc)
     try:
         r = client().get(url, **kw)
-        return r if r.status_code == 200 else None
-    except httpx.HTTPError:
+    except httpx.HTTPError as e:
+        log.info("fetch failed: %s (%s)", url, type(e).__name__)
         return None
+    if r.status_code != 200:
+        log.debug("HTTP %s: %s", r.status_code, url)
+        return None
+    return r
 
 
 def get_json(url: str, **kw):
