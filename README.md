@@ -14,6 +14,13 @@ uvicorn recruited.api:app --reload          # web UI at http://localhost:8000
 pytest
 ```
 
+## Use the data GitHub collects for you
+The `daily-pipeline` workflow runs every day on GitHub (free) and saves the database as an artifact.
+1. Repo -> **Actions** -> latest green **daily-pipeline** run -> download **recruited-db**.
+2. Unzip it so the file sits at `data/recruited.db` in your clone.
+3. `uvicorn recruited.api:app` and open http://localhost:8000.
+Or skip this and run `python -m recruited run` yourself to build the database locally.
+
 ## Pipeline
 `sources/` (HN "Who is hiring", SEC EDGAR Form D, RSS funding/launch news, Product Hunt; YC opt-in)
 -> `extract.py` (headline -> company, amount, round) -> SQLite

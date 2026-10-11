@@ -206,3 +206,27 @@ def test_ollama_optional(monkeypatch):
     from recruited import outreach
     monkeypatch.delenv("RECRUITED_OLLAMA_MODEL", raising=False)
     assert outreach.ollama_refine("x") is None
+
+
+def test_ambiguous_skills():
+    from recruited.matching.resume import extract_skills
+    assert "go" not in extract_skills("Ready to go? Go to our site and go ahead and apply")
+    assert "go" in extract_skills("Backend services in Go and Python")
+    assert "go" in extract_skills("golang microservices")
+    assert "rest" not in extract_skills("rest of the team") and "rest" in extract_skills("REST APIs")
+
+
+def test_headline_descriptor_stripped():
+    assert parse_headline("Warehouse robot maker Ultra Robotics raises $62M").company == "Ultra Robotics"
+    assert parse_headline("AI startup Foo Labs raises $5M seed").company == "Foo Labs"
+    assert parse_headline("Oxide Computer raises $445M Series C").company == "Oxide Computer"
+
+
+def test_rank_dedupes_same_role():
+    conn = _seed()
+    db.add_job(conn, 1, "Senior Backend Engineer", "https://j/1b", "Python Postgres Docker backend APIs",
+               "NYC", False, "senior", "greenhouse")
+    from recruited import service
+    out = service.match_resume(conn, "Senior backend engineer, 7 years. Python, Postgres, Docker " * 3)
+    titles = [(m["company"], m["title"]) for m in out["matches"]]
+    assert len(titles) == len(set(titles))

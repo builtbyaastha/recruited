@@ -89,7 +89,14 @@ def rank(resume: Resume, jobs: list[dict], signals_by_company: dict[int, list[di
         results.append(dict(j, score=round(score, 4), matched_skills=matched, momentum=round(mom, 2),
                             reason=_reason(matched, mom, signals_by_company.get(j["company_id"], []), sen)))
     results.sort(key=lambda r: r["score"], reverse=True)
-    return results[:limit]
+    # The same role is often posted several times (one per location); keep the best-scoring copy.
+    seen, unique = set(), []
+    for r in results:
+        key = (r["company_id"], r["title"].strip().lower())
+        if key not in seen:
+            seen.add(key)
+            unique.append(r)
+    return unique[:limit]
 
 
 def _reason(matched, mom, signals, sen) -> str:

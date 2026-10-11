@@ -29,11 +29,22 @@ def skill_vocab() -> list[str]:
     return [s.strip().lower() for s in path.read_text().splitlines() if s.strip()]
 
 
+# Skills that are also everyday words: match case-sensitively and only in a tech sense.
+_AMBIGUOUS = {
+    "go": re.compile(r"\b(?:Go(?:lang)?|golang)\b(?!\s+(?:to|ahead|beyond|further|live|back|for|with)\b)"),
+    "rest": re.compile(r"\bREST(?:ful)?\b|\brestful\b"),
+}
+
+
 def extract_skills(text: str) -> list[str]:
     low = text.lower()
     found = []
     for s in skill_vocab():
-        if re.search(rf"(?<![a-z0-9+#.]){re.escape(s)}(?![a-z0-9+#])", low):
+        if s in _AMBIGUOUS:
+            hit = _AMBIGUOUS[s].search(text)
+        else:
+            hit = re.search(rf"(?<![a-z0-9+#.]){re.escape(s)}(?![a-z0-9+#])", low)
+        if hit:
             found.append(s)
     return found
 

@@ -17,6 +17,9 @@ _FUNDING_NAME = re.compile(rf"^(?P<name>[A-Z0-9][^,:;|]{{1,60}}?)\s+{FUNDING_VER
 _LAUNCH_NAME = re.compile(rf"^(?P<name>[A-Z0-9][^,:;|]{{1,60}}?)\s+{LAUNCH_VERBS}\b")
 # "Startup X, backed by ..., raises" -> handled by cutting at the first comma in name group.
 _TRAILING = re.compile(r"\s+(?:startup|ai startup|the|a)$", re.I)
+# "Warehouse robot maker Ultra Robotics" -> "Ultra Robotics"
+_DESCRIPTOR = re.compile(r"^.*?\b(?:maker|creator|developer|startup|provider|platform|company|firm|"
+                         r"unicorn|giant|specialist|operator|owner|builder|vendor|app)\s+(?=[A-Z0-9])")
 
 
 @dataclass
@@ -46,6 +49,7 @@ def _round(text: str) -> str | None:
 
 def _clean(name: str) -> str:
     name = _TRAILING.sub("", name.strip())
+    name = _DESCRIPTOR.sub("", name)
     return name.strip(" -–—\"'")
 
 
