@@ -72,7 +72,7 @@ def parse_headline(title: str) -> Parsed | None:
 
 REMOTE_RE = re.compile(r"\bremote\b", re.I)
 SENIOR_PATTERNS = [
-    ("intern", re.compile(r"\bintern(ship)?\b", re.I)),
+    ("intern", re.compile(r"\b(intern(ship)?|working student|student|co-op|apprentice(ship)?|trainee)\b", re.I)),
     ("executive", re.compile(r"\b(chief|cto|ceo|vp|vice president|head of)\b", re.I)),
     ("lead", re.compile(r"\b(staff|principal|lead|manager|director)\b", re.I)),
     ("senior", re.compile(r"\b(senior|sr\.?)\b", re.I)),

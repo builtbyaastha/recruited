@@ -244,3 +244,9 @@ def test_single_shared_skill_does_not_win():
     resume = open("examples/sample_resume.txt").read()
     top = service.match_resume(conn, resume)["matches"][0]
     assert top["company"] == "InfraCo"
+
+
+def test_student_roles_are_intern_level():
+    assert seniority_of("Working Student -- Software Engineer: Munich") == "intern"
+    assert seniority_of("Software Engineering Co-op") == "intern"
+    assert seniority_of("Software Engineer") == "mid"
